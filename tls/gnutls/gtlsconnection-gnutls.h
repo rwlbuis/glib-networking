@@ -19,6 +19,8 @@
 #include <gio/gio.h>
 #include <gnutls/gnutls.h>
 
+#include "gtlsconnection-base.h"
+
 G_BEGIN_DECLS
 
 #define G_TYPE_TLS_CONNECTION_GNUTLS            (g_tls_connection_gnutls_get_type ())
@@ -34,18 +36,14 @@ typedef struct _GTlsConnectionGnutls                          GTlsConnectionGnut
 
 struct _GTlsConnectionGnutlsClass
 {
-  GTlsConnectionClass parent_class;
+  GTlsConnectionBaseClass parent_class;
 
   void     (*failed)           (GTlsConnectionGnutls  *gnutls);
-
-  void     (*begin_handshake)  (GTlsConnectionGnutls  *gnutls);
-  void     (*finish_handshake) (GTlsConnectionGnutls  *gnutls,
-				GError               **inout_error);
 };
 
 struct _GTlsConnectionGnutls
 {
-  GTlsConnection parent_instance;
+  GTlsConnectionBase parent_instance;
   GTlsConnectionGnutlsPrivate *priv;
 };
 
@@ -59,38 +57,6 @@ void     g_tls_connection_gnutls_get_certificate     (GTlsConnectionGnutls  *gnu
 
 gboolean g_tls_connection_gnutls_request_certificate (GTlsConnectionGnutls  *gnutls,
 						      GError               **error);
-
-gssize   g_tls_connection_gnutls_read          (GTlsConnectionGnutls  *gnutls,
-						void                  *buffer,
-						gsize                  size,
-						gboolean               blocking,
-						GCancellable          *cancellable,
-						GError               **error);
-gssize   g_tls_connection_gnutls_write         (GTlsConnectionGnutls  *gnutls,
-						const void            *buffer,
-						gsize                  size,
-						gboolean               blocking,
-						GCancellable          *cancellable,
-						GError               **error);
-
-gboolean g_tls_connection_gnutls_check         (GTlsConnectionGnutls  *gnutls,
-						GIOCondition           condition);
-GSource *g_tls_connection_gnutls_create_source (GTlsConnectionGnutls  *gnutls,
-						GIOCondition           condition,
-						GCancellable          *cancellable);
-
-typedef enum {
-	G_TLS_DIRECTION_NONE = 0,
-	G_TLS_DIRECTION_READ = 1 << 0,
-	G_TLS_DIRECTION_WRITE = 1 << 1,
-} GTlsDirection;
-
-#define G_TLS_DIRECTION_BOTH (G_TLS_DIRECTION_READ | G_TLS_DIRECTION_WRITE)
-
-gboolean g_tls_connection_gnutls_close_internal (GIOStream            *stream,
-                                                 GTlsDirection         direction,
-                                                 GCancellable         *cancellable,
-                                                 GError              **error);
 
 G_END_DECLS
 
