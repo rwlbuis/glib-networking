@@ -53,6 +53,8 @@ gnutls_session_t                 g_tls_connection_gnutls_get_session     (GTlsCo
 void                             g_tls_connection_gnutls_get_certificate (GTlsConnectionGnutls *gnutls,
                                                                         gnutls_retr2_st      *st);
 
+gboolean                   g_tls_connection_gnutls_request_certificate (GTlsConnectionGnutls *self);
+
 gssize   g_tls_connection_gnutls_read          (GTlsConnectionGnutls  *gnutls,
 						void                  *buffer,
 						gsize                  size,

@@ -238,6 +238,7 @@ g_tls_client_connection_gnutls_retrieve_function (gnutls_session_t             s
 						  gnutls_retr2_st             *st)
 {
   GTlsClientConnectionGnutls *gnutls = gnutls_transport_get_ptr (session);
+  GTlsConnectionGnutls *conn = G_TLS_CONNECTION_GNUTLS (gnutls);
   GPtrArray *accepted_cas;
   GByteArray *dn;
   int i;
@@ -257,7 +258,14 @@ g_tls_client_connection_gnutls_retrieve_function (gnutls_session_t             s
   gnutls->priv->accepted_cas = accepted_cas;
   g_object_notify (G_OBJECT (gnutls), "accepted-cas");
 
-  g_tls_connection_gnutls_get_certificate (G_TLS_CONNECTION_GNUTLS (gnutls), st);
+  g_tls_connection_gnutls_get_certificate (conn, st);
+
+  if (st->ncerts == 0)
+    {
+      if (g_tls_connection_gnutls_request_certificate (conn))
+        g_tls_connection_gnutls_get_certificate (conn, st);
+    }
+
   return 0;
 }
 
