@@ -1713,32 +1713,22 @@ g_tls_connection_gnutls_initable_iface_init (GInitableIface *iface)
 }
 
 gboolean
-g_tls_connection_gnutls_request_certificate (GTlsConnectionGnutls *self)
+g_tls_connection_gnutls_request_certificate (GTlsConnectionGnutls  *self,
+					     GError               **error)
 {
   GTlsInteractionResult res = G_TLS_INTERACTION_UNHANDLED;
   GTlsInteraction *interaction;
   GTlsConnection *conn;
-  GError *error = NULL;
 
   g_return_val_if_fail (G_IS_TLS_CONNECTION_GNUTLS (self), FALSE);
 
   conn = G_TLS_CONNECTION (self);
 
   interaction = g_tls_connection_get_interaction (conn);
-  if (interaction)
-    {
-      res = g_tls_interaction_invoke_request_certificate (interaction, conn, 0,
-                                                          self->priv->read_cancellable, &error);
-    }
+  if (!interaction)
+    return FALSE;
 
-  if (error != NULL)
-    {
-      /* Propagate the error to the handshake */
-      if (self->priv->reading && !self->priv->handshake_error)
-        g_propagate_error (&self->priv->handshake_error, error);
-      else
-        g_error_free (error);
-    }
-
+  res = g_tls_interaction_invoke_request_certificate (interaction, conn, 0,
+						      self->priv->read_cancellable, error);
   return res != G_TLS_INTERACTION_FAILED;
 }

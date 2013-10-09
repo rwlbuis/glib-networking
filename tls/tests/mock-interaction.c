@@ -45,6 +45,7 @@ mock_interaction_ask_password_async (GTlsInteraction    *interaction,
   else
     g_tls_password_set_value (password, (const guchar *)self->static_password, -1);
   g_task_return_boolean (task, TRUE);
+  g_object_unref (task);
 }
 
 static GTlsInteractionResult
@@ -103,8 +104,11 @@ mock_interaction_request_certificate_async (GTlsInteraction    *interaction,
   if (self->static_error)
     g_task_return_error (task, g_error_copy (self->static_error));
   else
-    g_tls_connection_set_certificate (connection, self->static_certificate);
-  g_task_return_boolean (task, TRUE);
+    {
+      g_tls_connection_set_certificate (connection, self->static_certificate);
+      g_task_return_boolean (task, TRUE);
+    }
+  g_object_unref (task);
 }
 
 static GTlsInteractionResult
@@ -115,11 +119,8 @@ mock_interaction_request_certificate_finish (GTlsInteraction    *interaction,
   g_return_val_if_fail (g_task_is_valid (result, interaction),
                         G_TLS_INTERACTION_UNHANDLED);
 
-  if (g_task_had_error (G_TASK (result)))
-    {
-      g_task_propagate_boolean (G_TASK (result), error);
-      return G_TLS_INTERACTION_FAILED;
-    }
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    return G_TLS_INTERACTION_FAILED;
   else
     return G_TLS_INTERACTION_HANDLED;
 }

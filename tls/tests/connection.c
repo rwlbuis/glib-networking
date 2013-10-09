@@ -603,7 +603,7 @@ test_client_auth_request_cert (TestConnection *test,
   GTlsInteraction *interaction;
   gboolean cas_changed;
 
-  test->database = g_tls_file_database_new (TEST_FILE ("ca-roots.pem"), &error);
+  test->database = g_tls_file_database_new (tls_test_file_path ("ca-roots.pem"), &error);
   g_assert_no_error (error);
   g_assert (test->database);
 
@@ -616,7 +616,7 @@ test_client_auth_request_cert (TestConnection *test,
   g_tls_connection_set_database (G_TLS_CONNECTION (test->client_connection), test->database);
 
   /* Have the interaction return a certificate */
-  cert = g_tls_certificate_new_from_file (TEST_FILE ("client-and-key.pem"), &error);
+  cert = g_tls_certificate_new_from_file (tls_test_file_path ("client-and-key.pem"), &error);
   g_assert_no_error (error);
   interaction = mock_interaction_new_static_certificate (cert);
   g_tls_connection_set_interaction (G_TLS_CONNECTION (test->client_connection), interaction);
@@ -650,10 +650,9 @@ test_client_auth_request_fail (TestConnection *test,
 {
   GIOStream *connection;
   GError *error = NULL;
-  GTlsCertificate *cert;
   GTlsInteraction *interaction;
 
-  test->database = g_tls_file_database_new (TEST_FILE ("ca-roots.pem"), &error);
+  test->database = g_tls_file_database_new (tls_test_file_path ("ca-roots.pem"), &error);
   g_assert_no_error (error);
   g_assert (test->database);
 
@@ -665,9 +664,7 @@ test_client_auth_request_fail (TestConnection *test,
 
   g_tls_connection_set_database (G_TLS_CONNECTION (test->client_connection), test->database);
 
-  /* Have the interaction return a certificate */
-  cert = g_tls_certificate_new_from_file (TEST_FILE ("client-and-key.pem"), &error);
-  g_assert_no_error (error);
+  /* Have the interaction return an error */
   interaction = mock_interaction_new_static_error (G_FILE_ERROR, G_FILE_ERROR_ACCES, "Request message");
   g_tls_connection_set_interaction (G_TLS_CONNECTION (test->client_connection), interaction);
   g_object_unref (interaction);
@@ -683,8 +680,6 @@ test_client_auth_request_fail (TestConnection *test,
 
   g_io_stream_close (test->server_connection, NULL, NULL);
   g_io_stream_close (test->client_connection, NULL, NULL);
-
-  g_object_unref (cert);
 }
 
 static void

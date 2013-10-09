@@ -61,6 +61,7 @@ struct _GTlsClientConnectionGnutlsPrivate
   GBytes *session_id;
 
   gboolean cert_requested;
+  GError *cert_error;
   GPtrArray *accepted_cas;
 };
 
@@ -137,12 +138,10 @@ g_tls_client_connection_gnutls_finalize (GObject *object)
 {
   GTlsClientConnectionGnutls *gnutls = G_TLS_CLIENT_CONNECTION_GNUTLS (object);
 
-  if (gnutls->priv->server_identity)
-    g_object_unref (gnutls->priv->server_identity);
-  if (gnutls->priv->accepted_cas)
-    g_ptr_array_unref (gnutls->priv->accepted_cas);
-  if (gnutls->priv->session_id)
-    g_bytes_unref (gnutls->priv->session_id);
+  g_clear_object (&gnutls->priv->server_identity);
+  g_clear_pointer (&gnutls->priv->accepted_cas, g_ptr_array_unref);
+  g_clear_pointer (&gnutls->priv->session_id, g_bytes_unref);
+  g_clear_error (&gnutls->priv->cert_error);
 
   G_OBJECT_CLASS (g_tls_client_connection_gnutls_parent_class)->finalize (object);
 }
@@ -262,7 +261,8 @@ g_tls_client_connection_gnutls_retrieve_function (gnutls_session_t             s
 
   if (st->ncerts == 0)
     {
-      if (g_tls_connection_gnutls_request_certificate (conn))
+      g_clear_error (&gnutls->priv->cert_error);
+      if (g_tls_connection_gnutls_request_certificate (conn, &gnutls->priv->cert_error))
         g_tls_connection_gnutls_get_certificate (conn, st);
     }
 
@@ -313,8 +313,16 @@ g_tls_client_connection_gnutls_finish_handshake (GTlsConnectionGnutls  *conn,
       gnutls->priv->cert_requested)
     {
       g_clear_error (inout_error);
-      g_set_error_literal (inout_error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED,
-			   _("Server required TLS certificate"));
+      if (gnutls->priv->cert_error)
+	{
+	  *inout_error = gnutls->priv->cert_error;
+	  gnutls->priv->cert_error = NULL;
+	}
+      else
+	{
+	  g_set_error_literal (inout_error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED,
+			       _("Server required TLS certificate"));
+	}
     }
 
   if (gnutls->priv->session_id)
