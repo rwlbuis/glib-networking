@@ -33,8 +33,8 @@ AM_GLIB_GNU_GETTEXT
 dnl *****************************
 dnl *** Check GLib GIO        ***
 dnl *****************************
-AM_PATH_GLIB_2_0(2.39.1,,AC_MSG_ERROR(GLIB not found),gio)
-GLIB_CFLAGS="$GLIB_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_42"
+AM_PATH_GLIB_2_0(2.43.1,,AC_MSG_ERROR(GLIB not found),gio)
+GLIB_CFLAGS="$GLIB_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_44"
 
 GIO_MODULE_DIR=$($PKG_CONFIG --variable giomoduledir gio-2.0)
 AS_IF([test "$GIO_MODULE_DIR" = ""],
