@@ -156,6 +156,11 @@ AM_CONDITIONAL(HAVE_PKCS11, [test "$with_pkcs11" = "yes"])
 AC_SUBST(PKCS11_CFLAGS)
 AC_SUBST(PKCS11_LIBS)
 
+dnl ***********************************
+dnl *** Do we have any TLS backend? ***
+dnl ***********************************
+AM_CONDITIONAL(HAVE_TLS, [test "$with_gnutls" = "yes"])
+
 dnl ************************************
 dnl *** Enable lcov coverage reports ***
 dnl ************************************
