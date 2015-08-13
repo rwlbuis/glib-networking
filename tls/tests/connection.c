@@ -1439,6 +1439,7 @@ test_simultaneous_async (TestConnection *test,
   g_assert_cmpstr (test->buf, ==, TEST_DATA);
 }
 
+#ifdef WITH_BACKEND_GNUTLS
 static gboolean
 check_gnutls_has_rehandshaking_bug (void)
 {
@@ -1451,16 +1452,22 @@ check_gnutls_has_rehandshaking_bug (void)
 	  !strcmp (version, "3.3.9") ||
           !strcmp (version, "3.3.10"));
 }
+#endif
 
 static void
 test_simultaneous_async_rehandshake (TestConnection *test,
 				     gconstpointer   data)
 {
+#ifdef WITH_BACKEND_GNUTLS
   if (check_gnutls_has_rehandshaking_bug ())
     {
       g_test_skip ("test would fail due to gnutls bug 108690");
       return;
     }
+#else
+  g_test_skip ("this needs more research on openssl");
+  return;
+#endif
 
   test->rehandshake = TRUE;
   test_simultaneous_async (test, data);
@@ -1556,11 +1563,16 @@ static void
 test_simultaneous_sync_rehandshake (TestConnection *test,
 				    gconstpointer   data)
 {
+#ifdef WITH_BACKEND_GNUTLS
   if (check_gnutls_has_rehandshaking_bug ())
     {
       g_test_skip ("test would fail due to gnutls bug 108690");
       return;
     }
+#else
+  g_test_skip ("this needs more research on openssl");
+  return;
+#endif
 
   test->rehandshake = TRUE;
   test_simultaneous_sync (test, data);

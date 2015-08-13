@@ -25,6 +25,10 @@ if HAVE_GNUTLS
 SUBDIRS += tls/gnutls
 endif
 
+if HAVE_OPENSSL
+SUBDIRS += tls/openssl
+endif
+
 if HAVE_TLS
 SUBDIRS += tls/tests
 endif

@@ -156,10 +156,29 @@ AM_CONDITIONAL(HAVE_PKCS11, [test "$with_pkcs11" = "yes"])
 AC_SUBST(PKCS11_CFLAGS)
 AC_SUBST(PKCS11_LIBS)
 
+dnl **************************
+dnl *** Checks for OpenSSL ***
+dnl **************************
+
+AC_ARG_WITH(openssl,
+    [AC_HELP_STRING([--with-openssl],
+                    [support for OpenSSL @<:@default=check@:>@])],
+                    [],
+                    [with_openssl=check])
+AS_IF([test "$with_openssl" != "no"],
+      [PKG_CHECK_MODULES(OPENSSL, [openssl],
+                         [with_openssl=yes
+                          tls_support="openssl $tls_support"],
+                         [AS_IF([test "x$with_openssl" = "xyes"],
+                                [AC_MSG_FAILURE("$OPENSSL_PKG_ERRORS")])])])
+AM_CONDITIONAL(HAVE_OPENSSL, [test "$with_openssl" = "yes"])
+AC_SUBST(OPENSSL_CFLAGS)
+AC_SUBST(OPENSSL_LIBS)
+
 dnl ***********************************
 dnl *** Do we have any TLS backend? ***
 dnl ***********************************
-AM_CONDITIONAL(HAVE_TLS, [test "$with_gnutls" = "yes"])
+AM_CONDITIONAL(HAVE_TLS, [test "$with_gnutls" = "yes" -o "$with_openssl" = "yes"])
 
 dnl ************************************
 dnl *** Enable lcov coverage reports ***
@@ -247,6 +266,7 @@ AC_CONFIG_FILES([Makefile
                  proxy/tests/Makefile
                  tls/base/Makefile
                  tls/gnutls/Makefile
+                 tls/openssl/Makefile
                  tls/pkcs11/Makefile
                  tls/tests/Makefile
                 ])
@@ -255,7 +275,7 @@ AC_OUTPUT
 echo ""
 echo     "  Proxy support:     ${proxy_support:-no}"
 echo     "  TLS support:       ${tls_support:-no}"
-if test "$tls_support" != "no"; then
+if test "$with_gnutls" != "no"; then
     echo "  PKCS#11 Support:   $pkcs11_support"
     echo "  TLS CA file:       ${with_ca_certificates:-(none)}"
     if test "x$with_ca_certificates" != xno -a -n "$with_ca_certificates"; then

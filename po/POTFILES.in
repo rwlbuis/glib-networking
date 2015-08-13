@@ -4,5 +4,9 @@ tls/gnutls/gtlscertificate-gnutls.c
 tls/gnutls/gtlsclientconnection-gnutls.c
 tls/gnutls/gtlsconnection-gnutls.c
 tls/gnutls/gtlsserverconnection-gnutls.c
+tls/openssl/gtlscertificate-openssl.c
+tls/openssl/gtlsclientconnection-openssl.c
+tls/openssl/gtlsconnection-openssl.c
+tls/openssl/gtlsserverconnection-openssl.c
 tls/pkcs11/gpkcs11pin.c
 tls/pkcs11/gpkcs11slot.c
