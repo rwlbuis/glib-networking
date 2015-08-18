@@ -1,24 +1,36 @@
 include $(top_srcdir)/glib-networking.mk
 
 AM_CPPFLAGS +=					\
-	$(GNUTLS_CFLAGS)			\
 	-I$(top_srcdir)/tls			\
 	-I$(top_builddir)/tls			\
 	-DSRCDIR=\""$(abs_srcdir)"\"		\
 	-DTOP_BUILDDIR=\""$(top_builddir)"\"
 
 LDADD  = \
-	$(GLIB_LIBS) \
-	$(GNUTLS_LIBS)
+	$(GLIB_LIBS)
 
-test_programs =       \
-	certificate   \
-	file-database \
-	connection    \
+test_programs =
+
+if HAVE_GNUTLS
+test_programs +=             \
+	certificate-gnutls   \
+	file-database-gnutls \
+	connection-gnutls    \
 	$(NULL)
 
-connection_SOURCES = connection.c \
-	mock-interaction.c mock-interaction.h
+certificate_gnutls_SOURCES = certificate.c
+certificate_gnutls_CPPFLAGS = $(AM_CPPFLAGS) $(GNUTLS_CFLAGS) -DBACKEND=\""gnutls"\" -DWITH_BACKEND_GNUTLS
+certificate_gnutls_LDADD = $(GLIB_LIBS) $(GNUTLS_LIBS)
+
+connection_gnutls_SOURCES = connection.c mock-interaction.c mock-interaction.h
+connection_gnutls_CPPFLAGS = $(AM_CPPFLAGS) $(GNUTLS_CFLAGS) -DBACKEND=\""gnutls"\" -DWITH_BACKEND_GNUTLS
+connection_gnutls_LDADD = $(GLIB_LIBS) $(GNUTLS_LIBS)
+
+file_database_gnutls_SOURCES = file-database.c
+file_database_gnutls_CPPFLAGS = $(AM_CPPFLAGS) $(GNUTLS_CFLAGS) -DBACKEND=\""gnutls"\" -DWITH_BACKEND_GNUTLS
+file_database_gnutls_LDADD = $(GLIB_LIBS) $(GNUTLS_LIBS)
+
+endif
 
 if HAVE_PKCS11
 
