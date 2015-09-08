@@ -27,7 +27,10 @@
 #include "mock-interaction.h"
 
 #include <gio/gio.h>
+
+#ifdef WITH_BACKEND_GNUTLS
 #include <gnutls/gnutls.h>
+#endif
 
 #include <sys/types.h>
 #include <string.h>
@@ -2005,7 +2008,11 @@ main (int   argc,
   g_test_bug_base ("http://bugzilla.gnome.org/");
 
   g_setenv ("GSETTINGS_BACKEND", "memory", TRUE);
-  g_setenv ("GIO_EXTRA_MODULES", TOP_BUILDDIR "/tls/" BACKEND "/.libs", TRUE);
+
+#ifndef _MSC_VER
+  g_setenv ("GIO_EXTRA_MODULES", TOP_BUILDDIR "/proxy/gnome/.libs", TRUE);
+#endif
+
   g_setenv ("GIO_USE_TLS", BACKEND, TRUE);
   g_assert (g_ascii_strcasecmp (G_OBJECT_TYPE_NAME (g_tls_backend_get_default ()), "GTlsBackend" BACKEND) == 0);
 
