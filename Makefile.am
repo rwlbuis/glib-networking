@@ -33,6 +33,8 @@ if HAVE_TLS
 SUBDIRS += tls/tests
 endif
 
+SUBDIRS += build
+
 install-exec-hook:
 	if test -n "$(GIO_QUERYMODULES)" -a -z "$(DESTDIR)"; then \
 		$(GIO_QUERYMODULES) $(GIO_MODULE_DIR) ;           \

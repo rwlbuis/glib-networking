@@ -35,3 +35,14 @@ libgioopenssl_la_LIBADD =		\
 	$(GLIB_LIBS)			\
 	$(OPENSSL_LIBS)			\
 	$(NULL)
+
+# MSVC Projects
+
+MSVCPROJS = libgioopenssl
+
+libgioopenssl_FILES = $(libgioopenssl_la_SOURCES)
+libgioopenssl_EXCLUDES = dummy
+
+include $(top_srcdir)/build/Makefile.msvcproj
+
+dist-hook: $(top_builddir)/build/win32/vs9/libgioopenssl.vcproj

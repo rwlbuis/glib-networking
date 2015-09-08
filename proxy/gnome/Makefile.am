@@ -14,3 +14,14 @@ libgiognomeproxy_la_LDFLAGS = $(module_flags)
 libgiognomeproxy_la_LIBADD =		\
 	$(GLIB_LIBS)			\
 	$(NULL)
+
+# MSVC Projects
+
+MSVCPROJS = libgiognomeproxy
+
+libgiognomeproxy_FILES = $(libgiognomeproxy_la_SOURCES)
+libgiognomeproxy_EXCLUDES = dummy
+
+include $(top_srcdir)/build/Makefile.msvcproj
+
+dist-hook: $(top_builddir)/build/win32/vs9/libgiognomeproxy.vcproj

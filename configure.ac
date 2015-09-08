@@ -261,6 +261,13 @@ dnl *** done                  ***
 dnl *****************************
 AC_CONFIG_FILES([Makefile
                  config.h.win32
+                 build/Makefile
+                 build/win32/Makefile
+                 build/win32/vs9/Makefile
+                 build/win32/vs10/Makefile
+                 build/win32/vs11/Makefile
+                 build/win32/vs12/Makefile
+                 build/win32/vs14/Makefile
                  po/Makefile.in po/Makefile
                  proxy/libproxy/Makefile
                  proxy/gnome/Makefile
