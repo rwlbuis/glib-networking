@@ -260,6 +260,7 @@ dnl *****************************
 dnl *** done                  ***
 dnl *****************************
 AC_CONFIG_FILES([Makefile
+                 config.h.win32
                  po/Makefile.in po/Makefile
                  proxy/libproxy/Makefile
                  proxy/gnome/Makefile

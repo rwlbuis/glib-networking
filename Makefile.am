@@ -43,7 +43,9 @@ uninstall-hook:
 		$(GIO_QUERYMODULES) $(GIO_MODULE_DIR) ;           \
 	fi
 
-EXTRA_DIST +=		\
-	tap-driver.sh	\
-	tap-test	\
+EXTRA_DIST +=			\
+	tap-driver.sh		\
+	tap-test		\
+	config.h.win32.in	\
+	config.h.win32		\
 	$(NULL)
