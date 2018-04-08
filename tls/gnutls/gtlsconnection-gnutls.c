@@ -719,6 +719,7 @@ claim_op (GTlsConnectionGnutls    *gnutls,
     return FALSE;
 
   g_mutex_lock (&priv->op_mutex);
+g_info ("%s: gnutls=%p op=%d", __FUNCTION__, gnutls, op);
 
   if (((op == G_TLS_CONNECTION_GNUTLS_OP_HANDSHAKE ||
         op == G_TLS_CONNECTION_GNUTLS_OP_READ) &&
@@ -727,6 +728,7 @@ claim_op (GTlsConnectionGnutls    *gnutls,
         op == G_TLS_CONNECTION_GNUTLS_OP_WRITE) &&
        (priv->write_closing || priv->write_closed)))
     {
+g_info("gnutls=%p Connection is closed", gnutls);
       g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CLOSED,
                            _("Connection is closed"));
       g_mutex_unlock (&priv->op_mutex);
@@ -738,6 +740,7 @@ claim_op (GTlsConnectionGnutls    *gnutls,
       op != G_TLS_CONNECTION_GNUTLS_OP_CLOSE_READ &&
       op != G_TLS_CONNECTION_GNUTLS_OP_CLOSE_WRITE)
     {
+g_info("gnutls=%p Handshake error: %s", gnutls, priv->handshake_error->message);
       if (error)
         *error = g_error_copy (priv->handshake_error);
       g_mutex_unlock (&priv->op_mutex);
@@ -753,11 +756,14 @@ claim_op (GTlsConnectionGnutls    *gnutls,
         {
           priv->need_handshake = FALSE;
           priv->handshaking = TRUE;
+g_info("gnutls=%p Diverted into implicit handshake...", gnutls);
           if (!do_implicit_handshake (gnutls, timeout, cancellable, error))
             {
+g_info("gnutls=%p Implicit handshake failed! Oh noo! error=%s", gnutls, (*error)->message);
               g_mutex_unlock (&priv->op_mutex);
               return FALSE;
             }
+g_info("gnutls=%p Implicit handshake successful", gnutls);
         }
 
       if (priv->need_finish_handshake &&
@@ -780,6 +786,7 @@ claim_op (GTlsConnectionGnutls    *gnutls,
               (!success || g_cancellable_set_error_if_cancelled (cancellable, &my_error)))
             {
               g_propagate_error (error, my_error);
+g_info("gnutls=%p Oh no, finish implicit handshake failed: %s", gnutls, (*error)->message);
               g_mutex_unlock (&priv->op_mutex);
               return FALSE;
             }
@@ -796,6 +803,8 @@ claim_op (GTlsConnectionGnutls    *gnutls,
       int nfds;
       gint64 start_time;
       gint result = 1;  /* if the loop is never entered, it’s as if we cancelled early */
+
+g_info("gnutls=%p Read/write/handshake when already read/write/handshaking, got to wait and poll now!", gnutls);
 
       g_cancellable_reset (priv->waiting_for_op);
 
@@ -854,20 +863,33 @@ claim_op (GTlsConnectionGnutls    *gnutls,
 
   if (op == G_TLS_CONNECTION_GNUTLS_OP_HANDSHAKE)
     {
+g_info("gnutls=%p Claimed handshake op!", gnutls);
       priv->handshaking = TRUE;
       priv->need_handshake = FALSE;
     }
   if (op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_BOTH ||
       op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_READ)
+{
+g_info("gnutls=%p Claimed close read op!", gnutls);
     priv->read_closing = TRUE;
+}
   if (op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_BOTH ||
       op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_WRITE)
+{
+g_info("gnutls=%p Claimed close write op!", gnutls);
     priv->write_closing = TRUE;
+}
 
   if (op != G_TLS_CONNECTION_GNUTLS_OP_WRITE)
+{
+g_info("gnutls=%p Claimed non-write op!", gnutls);
     priv->reading = TRUE;
+}
   if (op != G_TLS_CONNECTION_GNUTLS_OP_READ)
+{
+g_info("gnutls=%p Claimed non-read op!", gnutls);
     priv->writing = TRUE;
+}
 
   g_mutex_unlock (&priv->op_mutex);
   return TRUE;
@@ -882,18 +904,33 @@ yield_op (GTlsConnectionGnutls   *gnutls,
   g_mutex_lock (&priv->op_mutex);
 
   if (op == G_TLS_CONNECTION_GNUTLS_OP_HANDSHAKE)
+{
+g_info("gnutls=%p Yielded handshake op!", gnutls);
     priv->handshaking = FALSE;
+}
   if (op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_BOTH ||
       op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_READ)
+{
+g_info("gnutls=%p Yielded read close op!", gnutls);
     priv->read_closing = FALSE;
+}
   if (op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_BOTH ||
       op == G_TLS_CONNECTION_GNUTLS_OP_CLOSE_WRITE)
+{
+g_info("gnutls=%p Yielded write close op!", gnutls);
     priv->write_closing = FALSE;
+}
 
   if (op != G_TLS_CONNECTION_GNUTLS_OP_WRITE)
+{
+g_info("gnutls=%p Yielded non-write op!", gnutls);
     priv->reading = FALSE;
+}
   if (op != G_TLS_CONNECTION_GNUTLS_OP_READ)
+{
+g_info("gnutls=%p Yielded non-read op!", gnutls);
     priv->writing = FALSE;
+}
 
   g_cancellable_cancel (priv->waiting_for_op);
   g_mutex_unlock (&priv->op_mutex);
@@ -945,6 +982,7 @@ end_gnutls_io (GTlsConnectionGnutls  *gnutls,
   g_assert (!error || !*error);
 
   if (status == GNUTLS_E_AGAIN ||
+      status == GNUTLS_E_INTERRUPTED || // fixes simul read/write but breaks client-auth rehandshake
       status == GNUTLS_E_WARNING_ALERT_RECEIVED)
     return GNUTLS_E_AGAIN;
 
@@ -1034,6 +1072,12 @@ end_gnutls_io (GTlsConnectionGnutls  *gnutls,
     {
       g_set_error_literal (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED,
                            _("TLS connection peer did not send a certificate"));
+      return status;
+    }
+  else if (status == GNUTLS_E_CERTIFICATE_ERROR)
+    {
+      g_set_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE,
+                   _("Unacceptable TLS certificate"));
       return status;
     }
   else if (status == GNUTLS_E_FATAL_ALERT_RECEIVED)
@@ -1805,6 +1849,7 @@ accept_certificate_cb (gpointer user_data)
   priv->peer_certificate_accepted = accept_peer_certificate (gnutls,
                                                              priv->peer_certificate,
                                                              priv->peer_certificate_errors);
+g_info("Finished accept-peer-certificate emission on \"main\" thread");
   priv->peer_certificate_examined = TRUE;
 
   g_cond_signal (&priv->verify_certificate_condition);
@@ -1849,6 +1894,7 @@ verify_certificate_cb (gnutls_session_t session)
   g_mutex_unlock (&priv->verify_certificate_mutex);
 
   /* Return 0 for the handshake to continue, non-zero to terminate. */
+g_info("%s: certificate is accepted? %d", __FUNCTION__, accepted);
   return !accepted;
 }
 
@@ -1943,9 +1989,11 @@ handshake_thread (GTask        *task,
 
   BEGIN_GNUTLS_IO (gnutls, G_IO_IN | G_IO_OUT, timeout, cancellable);
   ret = gnutls_handshake (priv->session);
+g_info("gnutls=%p Finished gnutls_handshake!", gnutls);
   if (ret == GNUTLS_E_GOT_APPLICATION_DATA)
     {
       guint8 buf[1024];
+g_info("gnutls=%p GNUTLS_E_GOT_APPLICATION_DATA", gnutls);
 
       /* Got app data while waiting for rehandshake; buffer it and try again */
       ret = gnutls_record_recv (priv->session, buf, sizeof (buf));
@@ -1959,11 +2007,12 @@ handshake_thread (GTask        *task,
     }
   END_GNUTLS_IO (gnutls, G_IO_IN | G_IO_OUT, ret,
                  _("Error performing TLS handshake"), &error);
-
+if (error != NULL) g_info ("gnutls=%p error = %s", gnutls, error->message);
   if (!priv->peer_certificate && G_IS_TLS_CLIENT_CONNECTION (gnutls))
     {
       g_set_error_literal (&error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE,
                            _("Server did not return a valid TLS certificate"));
+g_info("gnutls=%p Server did not return a valid TLS certificate", gnutls);
     }
 
   /* This calls the finish_handshake code of GTlsClientConnectionGnutls
@@ -1975,10 +2024,12 @@ handshake_thread (GTask        *task,
 
   if (error)
     {
+g_info("gnutls=%p Error: %s", gnutls, error->message);
       g_task_return_error (task, error);
     }
   else
     {
+g_info("gnutls=%p Handshake success!", gnutls);
       priv->ever_handshaked = TRUE;
       g_task_return_boolean (task, TRUE);
     }
@@ -2003,7 +2054,11 @@ accept_peer_certificate (GTlsConnectionGnutls *gnutls,
           g_dtls_client_connection_get_validation_flags (G_DTLS_CLIENT_CONNECTION (gnutls));
 
       if ((peer_certificate_errors & validation_flags) == 0)
+{
+g_info("%s gnutls=%p peer_certificate_errors=%d validation_flags=%d errors&flags=%d (0 is good)",
+__FUNCTION__, gnutls, peer_certificate_errors, validation_flags, peer_certificate_errors & validation_flags);
         accepted = TRUE;
+}
     }
 
   if (!accepted)
@@ -2031,7 +2086,9 @@ finish_handshake (GTlsConnectionGnutls  *gnutls,
 
   g_assert (error != NULL);
 
-  if (g_task_propagate_boolean (task, error) && !priv->peer_certificate_accepted)
+// FIXME FIXME FIXME: Is this safe to remove?
+  if (g_task_propagate_boolean (task, error) &&
+      priv->peer_certificate && !priv->peer_certificate_accepted)
     {
       g_set_error_literal (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE,
                            _("Unacceptable TLS certificate"));
@@ -2362,11 +2419,20 @@ g_tls_connection_gnutls_read (GTlsConnectionGnutls  *gnutls,
   yield_op (gnutls, G_TLS_CONNECTION_GNUTLS_OP_READ);
 
   if (ret >= 0)
+{
+char *buf = g_malloc0 (ret + 1);
+memcpy (buf, buffer, ret);
+g_info ("%s: gnutls=%p read %zd bytes: %s", __FUNCTION__, gnutls, ret, buf);
+g_free (buf);
     return ret;
+}
   else if (ret == GNUTLS_E_REHANDSHAKE)
     goto again;
   else
+{
+g_info("%s: gnutls=%p error %ld (%s) return -1", __FUNCTION__, gnutls, ret, gnutls_strerror ((int)ret));
     return -1;
+}
 }
 
 static gsize
@@ -2561,11 +2627,20 @@ g_tls_connection_gnutls_write (GTlsConnectionGnutls  *gnutls,
   yield_op (gnutls, G_TLS_CONNECTION_GNUTLS_OP_WRITE);
 
   if (ret >= 0)
+{
+char *buf = g_malloc0 (ret + 1);
+memcpy (buf, buffer, ret);
+g_info("%s: gnutls=%p ret=%zd wrote %s", __FUNCTION__, gnutls, ret, buf);
+g_free (buf);
     return ret;
+}
   else if (ret == GNUTLS_E_REHANDSHAKE)
     goto again;
   else
+{
+g_info("%s gnutls=%p error %ld (%s) return -1", __FUNCTION__, gnutls, ret, gnutls_strerror ((int)ret));
     return -1;
+}
 }
 
 static gssize
